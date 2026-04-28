@@ -3,6 +3,19 @@ import Combine
 
 @MainActor
 final class StatusItemController: NSObject, ObservableObject {
+    struct MenuItemDescriptor: Equatable {
+        let title: String
+        let action: Selector?
+        let keyEquivalent: String
+        let isSeparator: Bool
+
+        static func item(_ title: String, action: Selector, keyEquivalent: String = "") -> MenuItemDescriptor {
+            MenuItemDescriptor(title: title, action: action, keyEquivalent: keyEquivalent, isSeparator: false)
+        }
+
+        static let separator = MenuItemDescriptor(title: "", action: nil, keyEquivalent: "", isSeparator: true)
+    }
+
     private var statusItem: NSStatusItem?
     private weak var viewModel: AppViewModel?
     private var openMainWindowAction: (() -> Void)?
@@ -49,14 +62,25 @@ final class StatusItemController: NSObject, ObservableObject {
 
     private func makeMenu() -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Launch Roblox", action: #selector(launchRoblox), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Launch Roblox Studio", action: #selector(launchRobloxStudio), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Open MacRo", action: #selector(openMacRo), keyEquivalent: ""))
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: AppConstants.quitButtonTitle, action: #selector(quitMacRo), keyEquivalent: "q"))
+        Self.menuItemDescriptors.forEach { descriptor in
+            if descriptor.isSeparator {
+                menu.addItem(.separator())
+            } else if let action = descriptor.action {
+                menu.addItem(NSMenuItem(title: descriptor.title, action: action, keyEquivalent: descriptor.keyEquivalent))
+            }
+        }
         menu.items.forEach { $0.target = self }
         return menu
     }
+
+    static let menuItemDescriptors: [MenuItemDescriptor] = [
+        .item("Launch Roblox", action: #selector(launchRoblox)),
+        .item("Launch Roblox Studio", action: #selector(launchRobloxStudio)),
+        .separator,
+        .item("Open App", action: #selector(openMacRo)),
+        .separator,
+        .item(AppConstants.quitButtonTitle, action: #selector(quitMacRo), keyEquivalent: "q")
+    ]
 
     @objc private func launchRoblox() {
         viewModel?.applyAndLaunch(.roblox)
