@@ -11,6 +11,14 @@ Included is the flag `DFFlagDisableDPIScale: true`, which fixes the display scal
 
 - MacOS 14 or newer
 
-## Download
+## Installing
 
-Download the latest `MacRo.dmg` from Releases
+From Release:
+Download the latest `MacRo.dmg` from Releases and mount it.
+
+Homebrew:
+```bash
+brew tap staplecruncher/macro
+brew install --cask macro
+xattr -dr com.apple.quarantine /Applications/MacRo.app
+```
