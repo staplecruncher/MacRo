@@ -1,6 +1,6 @@
 # MacRo
 
-MacOS bootstrapper & fast flag editor for the Roblox Player and Roblox Studio.
+macOS bootstrapper & fast flag editor for the Roblox Player and Roblox Studio.
 
 Included is the flag `DFFlagDisableDPIScale: true`, which fixes the display scaling issue on MacOS that causes Roblox to render in your scaled resolution instead of your native resolution.
 
