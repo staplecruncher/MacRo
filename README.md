@@ -1,6 +1,6 @@
 # MacRo
 
-Bootstrapper & fast flag editor for the Roblox Player and Roblox Studio
+MacOS bootstrapper & fast flag editor for the Roblox Player and Roblox Studio
 
 ![MacRo main window](docs/images/main-window.png)
 ![MacRo menu bar](docs/images/menu-bar.png)
