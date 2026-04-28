@@ -22,3 +22,9 @@ brew tap staplecruncher/macro
 brew install --cask macro
 xattr -dr com.apple.quarantine /Applications/MacRo.app
 ```
+
+Build from Source:
+Download the repo ZIP, extract, and run in a terminal
+```bash
+./build.sh
+```
