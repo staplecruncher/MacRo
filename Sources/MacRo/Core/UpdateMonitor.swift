@@ -92,7 +92,7 @@ struct UpdateMonitor: @unchecked Sendable {
     func compare(before: LaunchFingerprint, target: TargetKind, desiredFlagData: Data) throws -> UpdateImpact {
         let after = try fingerprint(for: target)
 
-        if before.bundleVersion != after.bundleVersion || before.bundleModificationDate != after.bundleModificationDate {
+        if before.bundleVersion != after.bundleVersion {
             return .bundleChanged
         }
 

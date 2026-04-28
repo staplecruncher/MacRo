@@ -28,6 +28,7 @@ final class AppViewModel: ObservableObject {
     private let location: ManagedAppLocation
     private let uninstaller: ManagedAppUninstaller
     private var pendingRoutedLaunchRequests: [TargetKind: RoutedLaunchRequest] = [:]
+    private var activeUpdateWatchSessions: [TargetKind: UpdateWatchSession] = [:]
 
     init(
         store: FlagStore = FlagStore(),
@@ -118,6 +119,7 @@ final class AppViewModel: ObservableObject {
                 errorMessage = nil
                 return
             }
+            cancelActiveUpdateWatch(for: target)
             let data = try FlagSerializer.serialize(rows(for: target))
             let result = try await applier.apply(data: data, to: target, replacementDecision: .ask)
             guard result == .applied else {
@@ -285,6 +287,7 @@ final class AppViewModel: ObservableObject {
         _ target: TargetKind,
         replacementDecision: ReplacementDecision
     ) async throws -> Data {
+        cancelActiveUpdateWatch(for: target)
         try store.saveRows(rows(for: target), for: target)
         let data = try FlagSerializer.serialize(rows(for: target))
         let result = try await applier.apply(data: data, to: target, replacementDecision: replacementDecision)
@@ -335,9 +338,16 @@ final class AppViewModel: ObservableObject {
         desiredFlagData data: Data,
         session: UpdateWatchSession
     ) {
+        activeUpdateWatchSessions[target]?.cancel()
+        activeUpdateWatchSessions[target] = session
         AppRuntime.shared.beginBackgroundActivity()
         Task { @MainActor in
-            defer { AppRuntime.shared.finishBackgroundActivity() }
+            defer {
+                if activeUpdateWatchSessions[target] === session {
+                    activeUpdateWatchSessions[target] = nil
+                }
+                AppRuntime.shared.finishBackgroundActivity()
+            }
             do {
                 if let impact = try await updateMonitor.waitForImpact(
                     after: before,
@@ -360,6 +370,7 @@ final class AppViewModel: ObservableObject {
         Task { @MainActor in
             defer { finishApplying() }
             do {
+                cancelActiveUpdateWatch(for: target)
                 let data = try FlagSerializer.serialize(rows(for: target))
                 let result = try await applier.apply(data: data, to: target, replacementDecision: replacementDecision)
                 guard result == .applied else {
@@ -389,6 +400,11 @@ final class AppViewModel: ObservableObject {
 
     private func finishApplying() {
         isApplying = false
+    }
+
+    private func cancelActiveUpdateWatch(for target: TargetKind) {
+        activeUpdateWatchSessions[target]?.cancel()
+        activeUpdateWatchSessions[target] = nil
     }
 }
 

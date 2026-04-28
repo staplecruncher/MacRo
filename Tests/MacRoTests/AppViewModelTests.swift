@@ -287,6 +287,58 @@ final class AppViewModelTests: XCTestCase {
         XCTAssertFalse(AppRuntime.shared.isHandlingExternalLaunch)
     }
 
+    func testSecondLaunchCancelsPreviousMonitorBeforeReapplyingFlags() async throws {
+        let root = try temporaryDirectory()
+        let store = FlagStore(rootDirectory: root.appendingPathComponent("store", isDirectory: true))
+        let location = ManagedAppLocation(applicationsDirectory: root.appendingPathComponent("Applications", isDirectory: true))
+        try makeFakeApp(location: location, target: .roblox)
+        let applier = FlagApplier(
+            location: location,
+            backupRoot: root.appendingPathComponent("backups", isDirectory: true),
+            bundleSigner: RecordingBundleSigner()
+        )
+        let launcher = RecordingWorkspaceLauncher()
+        let firstLaunch = expectation(description: "first launch")
+        let secondLaunch = expectation(description: "second launch")
+        var launchCount = 0
+        launcher.didOpen = {
+            launchCount += 1
+            if launchCount == 1 {
+                firstLaunch.fulfill()
+            } else if launchCount == 2 {
+                secondLaunch.fulfill()
+            }
+        }
+        let model = try AppViewModel.makeForTests(
+            store: store,
+            applier: applier,
+            launcher: LaunchService(location: location, workspace: launcher, shouldProbeLaunchedProcess: false),
+            updateMonitor: UpdateMonitor(location: location),
+            updateMonitorTimeout: .seconds(5),
+            location: location,
+            installCoordinator: AlwaysInstalledCoordinator()
+        )
+        model.setRows([FlagRow(name: "FFlagTemporary", rawValue: "true", isEnabled: true)], for: .roblox)
+
+        model.applyAndLaunch(.roblox)
+        await fulfillment(of: [firstLaunch], timeout: 1.0)
+
+        model.setRows([FlagRow(name: "FFlagTemporary", rawValue: "true", isEnabled: false)], for: .roblox)
+        model.applyAndLaunch(.roblox)
+        await fulfillment(of: [secondLaunch], timeout: 1.0)
+        for _ in 0..<100 {
+            if model.pendingRelaunchTarget != nil {
+                break
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        let written = try Data(contentsOf: location.clientAppSettingsURL(for: .roblox))
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: written) as? [String: Any])
+        XCTAssertTrue(object.isEmpty)
+        XCTAssertNil(model.pendingRelaunchTarget)
+    }
+
     func testImmediateRepeatedLaunchOnlyStartsOneOperation() async throws {
         let root = try temporaryDirectory()
         let store = FlagStore(rootDirectory: root.appendingPathComponent("store", isDirectory: true))

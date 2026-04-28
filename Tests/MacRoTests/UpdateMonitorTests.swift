@@ -48,6 +48,27 @@ final class UpdateMonitorTests: XCTestCase {
         XCTAssertEqual(result, .bundleChanged)
     }
 
+    func testIgnoresBundleModificationDateChangeWhenFlagsAndVersionMatch() throws {
+        let root = try temporaryDirectory()
+        try makeFakeApp(root: root, target: .roblox, version: "1.0")
+        let location = ManagedAppLocation(applicationsDirectory: root)
+        let flagURL = location.clientAppSettingsURL(for: .roblox)
+        let flagData = Data("{\"A\":true}".utf8)
+        try FileManager.default.createDirectory(at: flagURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try flagData.write(to: flagURL)
+        let monitor = UpdateMonitor(location: location)
+        let before = try monitor.fingerprint(for: .roblox)
+        let changedDate = Date(timeIntervalSinceReferenceDate: Date.timeIntervalSinceReferenceDate + 60)
+        try FileManager.default.setAttributes(
+            [.modificationDate: changedDate],
+            ofItemAtPath: location.appURL(for: .roblox).path
+        )
+
+        let result = try monitor.compare(before: before, target: .roblox, desiredFlagData: flagData)
+
+        XCTAssertEqual(result, .unchanged)
+    }
+
     private func makeFakeApp(root: URL, target: TargetKind, version: String) throws {
         let app = root.appendingPathComponent(target.appBundleName, isDirectory: true)
         try FileManager.default.createDirectory(at: app.appendingPathComponent("Contents/MacOS", isDirectory: true), withIntermediateDirectories: true)
