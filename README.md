@@ -16,6 +16,11 @@ Included is the flag `DFFlagDisableDPIScale: true`, which fixes the display scal
 ### From Release:
 Download the latest `MacRo.dmg` from Releases and mount it.
 
+After installing, run in a terminal:
+```bash
+xattr -dr com.apple.quarantine /Applications/MacRo.app
+```
+
 ### Homebrew:
 ```bash
 brew tap staplecruncher/macro
@@ -24,7 +29,7 @@ xattr -dr com.apple.quarantine /Applications/MacRo.app
 ```
 
 ### Build from Source:
-Download the repo ZIP, extract, and run in a terminal
+Download the repo ZIP, extract, and run in a terminal:
 ```bash
 ./build.sh
 ```
